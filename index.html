@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4eddf">
+  <title>ポーション図鑑</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <button id="reset-tap-area" type="button" aria-label="管理者用操作領域" hidden></button>
+  <dialog id="reset-dialog" aria-labelledby="reset-dialog-title" aria-describedby="reset-dialog-message">
+    <h2 id="reset-dialog-title">データをリセットしました</h2>
+    <p id="reset-dialog-message">これは謎解きには関係のない画面です。謎解き中に表示された場合はスタッフを呼んでください。</p>
+    <form method="dialog"><button class="secondary" autofocus>閉じる</button></form>
+  </dialog>
+  <main>
+    <header class="masthead"><span class="book-mark" aria-hidden="true">◇</span><h1>ポーション図鑑</h1><div class="rule" aria-hidden="true"></div></header>
+    <section id="search-view" aria-labelledby="search-title">
+      <h2 id="search-title" tabindex="-1">名前を調べる</h2>
+      <form id="search-form">
+        <label for="name-input">調べたい名前</label>
+        <input id="name-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="名前を入力してください" required>
+        <button class="primary" type="submit">検索する <span aria-hidden="true">→</span></button>
+      </form>
+      <p id="search-message" role="status"></p>
+      <div class="memory-entry"><button id="remember-button" class="secondary" type="button">思い出す</button></div>
+    </section>
+    <section id="detail-view" hidden aria-labelledby="entry-name">
+      <h2 id="entry-name" tabindex="-1"></h2>
+      <figure aria-label="ポーションの画像枠"><img id="entry-image" alt="" width="640" height="440"><div id="image-fallback" hidden>画像を表示できません。</div></figure>
+      <dl>
+        <div><dt>色</dt><dd id="entry-color"></dd></div>
+        <div><dt>素材1</dt><dd id="entry-material1"></dd></div>
+        <div><dt>素材2</dt><dd id="entry-material2"></dd></div>
+        <div><dt>効果</dt><dd id="entry-effect"></dd></div>
+        <div><dt>使用回数</dt><dd id="entry-uses"></dd></div>
+      </dl>
+      <button class="secondary back-button" type="button">名前の検索に戻る</button>
+    </section>
+    <section id="memory-view" hidden aria-labelledby="memory-title">
+      <h2 id="memory-title" tabindex="-1">思い出す</h2><p id="memory-text" class="description"></p><ul id="memory-list"></ul><button class="secondary back-button" type="button">名前の検索に戻る</button>
+    </section>
+    <p id="storage-message" class="notice" role="status"></p>
+    <noscript><p>この図鑑を利用するには、ブラウザのJavaScriptを有効にしてください。</p></noscript>
+  </main>
+</body>
+</html>
