@@ -11,4 +11,5 @@
 #search-message,#memory-message{margin:12px 0 0;line-height:1.85}#search-message:empty,#memory-message:empty{display:none}
 
 /* 記憶した項目と、画面を戻る操作を色で区別 */
-#memory-list button{background:#e6d8bf;border-color:#b29a77;color:var(--ink)}
+#memory-list button{background:transparent;border-color:#a58d70;color:var(--ink)}
+.back-button{background:#e6d8bf;border-color:#b29a77;color:var(--ink)}
