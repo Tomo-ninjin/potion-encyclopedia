@@ -9,3 +9,6 @@
 #search-title:focus,#entry-name:focus,#memory-title:focus{outline:none}
 
 #search-message,#memory-message{margin:12px 0 0;line-height:1.85}#search-message:empty,#memory-message:empty{display:none}
+
+/* 記憶した項目と、画面を戻る操作を色で区別 */
+#memory-list button{background:#e6d8bf;border-color:#b29a77;color:var(--ink)}
