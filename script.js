@@ -10,6 +10,7 @@ const $ = id => document.getElementById(id);
 let historyNames = [];
 let requestVersion = 0;
 let activeController = null;
+let detailReturnView = "search-view";
 function storageWarning() {
   $("storage-message").textContent = "このブラウザでは記憶を保存できません。今開いている間は検索と思い出す機能を利用できます。";
 }
@@ -60,6 +61,7 @@ function showView(id) {
   ["search-view", "detail-view", "memory-view"].forEach(view => { $(view).hidden = view !== id; });
 }
 function showEntry(entry, record) {
+  detailReturnView = record ? "search-view" : "memory-view";
   if (record && !historyNames.includes(entry.name)) {
     historyNames.push(entry.name);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyNames)); } catch { storageWarning(); }
@@ -108,6 +110,11 @@ $("remember-button").addEventListener("click", () => {
 });
 document.querySelectorAll(".back-button").forEach(button => button.addEventListener("click", () => {
   cancelSearch();
+  if (button.id === "detail-back-button" && detailReturnView === "memory-view") {
+    showView("memory-view");
+    $("memory-title").focus();
+    return;
+  }
   $("name-input").value = "";
   $("search-message").textContent = "";
   showView("search-view"); $("search-title").focus();
