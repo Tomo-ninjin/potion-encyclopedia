@@ -25,7 +25,7 @@ async function searchPotion(name, record, messageId) {
   const controller = new AbortController();
   activeController = controller;
   const timer = setTimeout(() => controller.abort(), 12000);
-  $(messageId).textContent = "検索中です。";
+  $(messageId).textContent = "";
   try {
     const response = await fetch(API_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
