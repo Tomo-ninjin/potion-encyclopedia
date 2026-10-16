@@ -6,6 +6,12 @@ const ENABLE_ADMIN_RESET = true;
 // 検索データはCloudflare Workerで管理します。
 const API_URL = "https://potion-research.tomon2002.workers.dev/";
 const STORAGE_KEY = "potion-encyclopedia.api-history.v1";
+// Workerのデータを修正し、保存済み情報も更新させたい場合は v1 を v2 などに変更。
+const CACHE_KEY = "potion-encyclopedia.discovered.v1";
+const potionCache = new Map();
+function isPotion(entry) {
+  return entry && ["id", "name", "image", "color", "material1", "material2", "effect", "uses"].every(key => typeof entry[key] === "string");
+}
 const $ = id => document.getElementById(id);
 let historyNames = [];
 let requestVersion = 0;
@@ -18,10 +24,20 @@ try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   if (Array.isArray(saved)) historyNames = [...new Set(saved.filter(name => typeof name === "string" && name.length > 0 && name.length <= 100))];
 } catch { storageWarning(); }
+try {
+  const saved = JSON.parse(localStorage.getItem(CACHE_KEY) || "[]");
+  if (Array.isArray(saved)) saved.filter(entry => isPotion(entry) && historyNames.includes(entry.name)).forEach(entry => potionCache.set(entry.name, entry));
+} catch { storageWarning(); }
 
 async function searchPotion(name, record, messageId) {
   activeController?.abort();
   const version = ++requestVersion;
+  activeController = null;
+  $(messageId).textContent = "";
+  if (potionCache.has(name)) {
+    showEntry(potionCache.get(name), record);
+    return;
+  }
   const controller = new AbortController();
   activeController = controller;
   const timer = setTimeout(() => controller.abort(), 12000);
@@ -40,9 +56,11 @@ async function searchPotion(name, record, messageId) {
       return;
     }
     const entry = data.potion;
-    if (!entry || !["id", "name", "image", "color", "material1", "material2", "effect", "uses"].every(key => typeof entry[key] === "string")) throw new Error("Invalid response");
+    if (!isPotion(entry) || entry.name !== name) throw new Error("Invalid response");
     $(messageId).textContent = "";
     showEntry(entry, record);
+    potionCache.set(entry.name, entry);
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify([...potionCache.values()])); } catch { storageWarning(); }
   } catch {
     if (version === requestVersion) $(messageId).textContent = "通信できませんでした。接続を確認して、もう一度お試しください。";
   } finally {
@@ -123,9 +141,11 @@ document.querySelectorAll(".back-button").forEach(button => button.addEventListe
 window.resetEncyclopediaHistory = function () {
   cancelSearch();
   historyNames = [];
+  potionCache.clear();
   $("name-input").value = "";
   $("search-message").textContent = "";
   try { localStorage.removeItem(STORAGE_KEY); } catch { storageWarning(); }
+  try { localStorage.removeItem(CACHE_KEY); } catch { storageWarning(); }
   $("memory-list").replaceChildren(); $("memory-text").textContent = "思い出せるものはまだ何もないようだ。";
   showView("search-view"); $("search-title").focus();
   return "検索履歴を初期化しました。";
