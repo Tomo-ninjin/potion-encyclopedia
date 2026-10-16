@@ -1,52 +1,33 @@
-# ポーション図鑑
+# ポーション図鑑（API接続版）
 
-HTML・CSS・JavaScriptのみの静的サイトです。外部ライブラリやビルドは不要です。
+画面はGitHub Pages、検索データはCloudflare Workersで管理します。公開用script.jsには図鑑データを含めません。検索・履歴からの再表示には通信が必要です。
+
+## アップロードするファイル
+
+公開用ZIPの中身だけをGitHubへアップロードしてください。index.html、style.css、script.js、README.md、images/です。worker-search.mjsはCloudflare用の非公開管理コードです。GitHubにはアップロードしないでください。
 
 ## ローカル確認
 
-index.htmlをブラウザで開いてください。履歴を含めた確認には、このフォルダで `python -m http.server 8000 --bind 127.0.0.1` を実行し、http://127.0.0.1:8000 を開きます（Pythonが必要）。終了はCtrl+Cです。
+このフォルダで `python -m http.server 8000 --bind 127.0.0.1` を実行し、http://127.0.0.1:8000 を開きます。終了はCtrl+Cです。ファイルを直接開く方法ではAPI通信を利用できません。
 
-検索名は「ポーションA」「ポーションB」「ポーションC」「ポーションD」です。英字は半角大文字。前後空白以外は完全一致です。
+## データ・画像の変更
 
-## データ変更
+Cloudflareの対象WorkerでEdit codeを開き、POTIONS内のname（名前）、color（色）、material1・material2（素材）、effect（効果）、uses（使用回数）、image（画像）を変更してDeployします。idは重複しない固定IDにします。追加は配列の項目を複製し、項目間をカンマで区切ります。削除は対象項目と余分なカンマを除去します。
 
-script.js冒頭のENCYCLOPEDIAを編集します。
+画像は未設定なら空枠です。後で公開サイトのimages/に置き、Workerのimageに「images/ファイル名.png」のような相対パスを指定できます。公開画像のファイル名に答えを入れないようにしてください。
 
-```javascript
-{
-  id: "potion-a",
-  name: "ポーションA",
-  image: "",
-  color: "赤",
-  material1: "赤い薬草",
-  material2: "湧き水",
-  effect: "体力を少し回復する。",
-  uses: "1回"
-}
-```
+## 履歴とリセット
 
-nameは名前、colorは色、material1・material2は素材、effectは効果、usesは使用回数です。文章の長さは自由です。idは重複しない固定IDとし、名前を変更しても維持してください。
+成功した名前だけをlocalStorageに検索順・重複なしで保存します。履歴から開く場合もAPIを呼びます。通信失敗や未登録の場合は履歴を追加しません。旧静的版とは保存キーが異なるため、切り替え時は空の履歴から始まります。
 
-画像は生成していません。imageが空、または読み込みに失敗した場合は空の枠になります。後でimagesフォルダに画像を入れ、例えばimageを「images/potion-a.png」に変更します。大文字・小文字も合わせてください。以前の植物などのSVGはこの版では使用しません。
+右上48px四方を、操作間隔5秒以内で10回タップ・クリックすると履歴と入力をリセットし、管理者用モーダルを表示します。script.js冒頭のENABLE_ADMIN_RESETをfalseにすると操作領域と機能を無効にできます。ConsoleのresetEncyclopediaHistory()は常時利用可能です。保存キーはpotion-encyclopedia.api-history.v1です。localStorageが使えない環境では、そのページを開いている間だけ履歴を保持します。
 
-項目追加は配列内の項目を複製し、項目間をカンマで区切ります。idとnameは重複させないでください。削除は対象の項目と余分なカンマを削除します。入力や文章はHTMLとして実行されません。
+## GitHub Pagesと接続設定
 
-## 履歴初期化
+Settings → PagesでDeploy from a branch、公開対象ブランチ、/ (root)を設定します。更新後はActionsで最新コミットのデプロイ成功を確認します。script.jsのAPI_URLがWorkerのURLです。公開ドメインを変えるときはWorkerのALLOWED_ORIGINSも変更します（パスは含めません）。
 
-開発者ツール（F12など）のConsoleで `resetEncyclopediaHistory()` を実行します。画面右上の48px四方の目立たない領域を10回タップ・クリックしても初期化できます。操作間隔が5秒以上空くと回数を数え直します。初期化後は「データをリセットしました」と、公演中はスタッフを呼ぶよう案内するページ内のモーダルウィンドウを表示します。「閉じる」またはEscキーで閉じます。保存キーはmemory-encyclopedia.history.v1です。他のサイトデータは削除しません。
+## 公演前
 
-履歴は検索成功順・重複なしで保存します。記憶一覧から開いても履歴は増えません。旧版の項目はIDが異なるため一覧に表示されません。localStorageが利用できない場合は、ページを開いている間だけ履歴を保持します。端末間共有はありません。
+iPhone SafariとAndroid Chromeで検索・記憶・再読み込み・通信失敗時の表示を確認してください。本番前は管理者リセットをfalseにしてください。登録名一覧や本番データを公開リポジトリ・README・履歴に残さないでください。過去に公開したデータはAPI版に置き換えてもGit履歴からは消えません。
 
-## GitHub Pages
-
-1. index.html・style.css・script.js・README.mdをリポジトリ直下にアップロードします。今回の旧版からの更新では、この4ファイルを更新します。
-2. 画像を用意したらimagesフォルダにアップロードします。現時点では画像は不要です。
-3. Settings → PagesでDeploy from a branch、mainなどの対象ブランチ、/ (root)を選択します。
-4. Actionsで最新コミットのデプロイが成功したら公開URLで確認します。古い実行の再実行には、その後の変更は含まれません。
-5. 公演前にiPhone SafariとAndroid Chromeで実機確認してください。
-
-相対パスなのでリポジトリ名を含むURLでも動きます。ドメインが変わると履歴は引き継がれません。同じドメインに図鑑を複数置く場合はSTORAGE_KEYを別々にしてください。公開ソースからは登録データを閲覧できます。
-
-## 管理者リセット機能のオン・オフ
-
-script.jsの冒頭の `const ENABLE_ADMIN_RESET = true;` を `false` に変更すると、右上10回の操作領域を非表示にし、そのリセット操作を無効にします。本番ではfalseにしてください。テスト時はtrueに戻します。Consoleからの `resetEncyclopediaHistory()` はどちらの設定でも利用できます。
+全件データをブラウザに配信しませんが、検索名を推測して試すことは可能です。Originの制限はブラウザ向けの設定であり、APIの認証や大量検索対策ではありません。現在のWorkerにはリクエスト数の制限機構は追加していません。

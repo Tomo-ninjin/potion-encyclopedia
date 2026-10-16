@@ -3,49 +3,66 @@
 // 管理者用リセット機能：本番では false にすると右上の操作領域も無効になります。
 const ENABLE_ADMIN_RESET = true;
 
-// ===== 図鑑データ：この配列の中だけで項目を編集・追加・削除できます =====
-// id は履歴の識別に使うため、名前を変えても変更しないでください。
-const ENCYCLOPEDIA = [
-  {
-    id: "potion-a", name: "ポーションA", image: "",
-    color: "赤", material1: "赤い薬草", material2: "湧き水",
-    effect: "体力を少し回復する。", uses: "1回"
-  },
-  {
-    id: "potion-b", name: "ポーションB", image: "",
-    color: "青", material1: "青い花", material2: "朝露",
-    effect: "魔力を少し回復する。", uses: "2回"
-  },
-  {
-    id: "potion-c", name: "ポーションC", image: "",
-    color: "緑", material1: "緑の葉", material2: "澄んだ水",
-    effect: "毒を取り除く。", uses: "1回"
-  },
-  {
-    id: "potion-d", name: "ポーションD", image: "",
-    color: "黄", material1: "黄色い実", material2: "花の蜜",
-    effect: "しばらくの間、暗い場所でも見やすくなる。", uses: "3回"
-  }
-];
-// ===== ここから下は画面・履歴の処理です =====
-const STORAGE_KEY = "memory-encyclopedia.history.v1";
-const byId = new Map(ENCYCLOPEDIA.map(entry => [entry.id, entry]));
+// 検索データはCloudflare Workerで管理します。
+const API_URL = "https://potion-research.tomon2002.workers.dev/";
+const STORAGE_KEY = "potion-encyclopedia.api-history.v1";
 const $ = id => document.getElementById(id);
-let historyIds = [];
+let historyNames = [];
+let requestVersion = 0;
+let activeController = null;
 function storageWarning() {
   $("storage-message").textContent = "このブラウザでは記憶を保存できません。今開いている間は検索と思い出す機能を利用できます。";
 }
 try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  if (Array.isArray(saved)) historyIds = [...new Set(saved.filter(id => byId.has(id)))];
+  if (Array.isArray(saved)) historyNames = [...new Set(saved.filter(name => typeof name === "string" && name.length > 0 && name.length <= 100))];
 } catch { storageWarning(); }
+
+async function searchPotion(name, record, messageId) {
+  activeController?.abort();
+  const version = ++requestVersion;
+  const controller = new AbortController();
+  activeController = controller;
+  const timer = setTimeout(() => controller.abort(), 12000);
+  $(messageId).textContent = "検索中です。";
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }), signal: controller.signal,
+      credentials: "omit", cache: "no-store"
+    });
+    if (!response.ok) throw new Error("API error");
+    const data = await response.json();
+    if (version !== requestVersion) return;
+    if (data.potion === null) {
+      $(messageId).textContent = "その名前は図鑑に見つかりませんでした。";
+      return;
+    }
+    const entry = data.potion;
+    if (!entry || !["id", "name", "image", "color", "material1", "material2", "effect", "uses"].every(key => typeof entry[key] === "string")) throw new Error("Invalid response");
+    $(messageId).textContent = "";
+    showEntry(entry, record);
+  } catch {
+    if (version === requestVersion) $(messageId).textContent = "通信できませんでした。接続を確認して、もう一度お試しください。";
+  } finally {
+    clearTimeout(timer);
+    if (version === requestVersion) activeController = null;
+  }
+}
+function cancelSearch() {
+  requestVersion++;
+  activeController?.abort();
+  activeController = null;
+  $("search-message").textContent = "";
+  $("memory-message").textContent = "";
+}
 function showView(id) {
   ["search-view", "detail-view", "memory-view"].forEach(view => { $(view).hidden = view !== id; });
 }
 function showEntry(entry, record) {
-  if (record && !historyIds.includes(entry.id)) {
-    historyIds.push(entry.id);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyIds)); } catch { storageWarning(); }
+  if (record && !historyNames.includes(entry.name)) {
+    historyNames.push(entry.name);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyNames)); } catch { storageWarning(); }
   }
   $("entry-name").textContent = entry.name;
   $("entry-color").textContent = entry.color;
@@ -60,7 +77,12 @@ function showEntry(entry, record) {
   img.onerror = () => { img.hidden = true; };
   img.onload = () => { img.hidden = false; };
   img.alt = entry.name + "の画像";
-  if (entry.image) img.src = entry.image;
+  if (entry.image) {
+    try {
+      const url = new URL(entry.image, document.baseURI);
+      if (["https:", "http:"].includes(url.protocol)) img.src = url.href;
+    } catch { /* 未設定と同じ空枠にします */ }
+  }
   showView("detail-view");
   $("entry-name").focus();
 }
@@ -68,31 +90,32 @@ $("search-form").addEventListener("submit", event => {
   event.preventDefault();
   const name = $("name-input").value.trim();
   if (!name) { $("search-message").textContent = "調べたい名前を入力してください。"; $("search-title").focus(); return; }
-  const entry = ENCYCLOPEDIA.find(item => item.name === name);
-  $("search-message").textContent = entry ? "" : "その名前は図鑑に見つかりませんでした。";
-  if (entry) showEntry(entry, true);
+  searchPotion(name, true, "search-message");
 });
 $("remember-button").addEventListener("click", () => {
-  const entries = historyIds.map(id => byId.get(id));
-  $("memory-text").textContent = entries.length ? entries.map(entry => "『" + entry.name + "』").join("") + "を思い出した。" : "思い出せるものはまだ何もないようだ。";
+  cancelSearch();
+  const entries = historyNames;
+  $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "を思い出した。" : "思い出せるものはまだ何もないようだ。";
   $("memory-list").replaceChildren();
-  entries.forEach(entry => {
+  entries.forEach(name => {
     const li = document.createElement("li");
     const button = document.createElement("button");
-    button.type = "button"; button.className = "secondary"; button.textContent = entry.name;
-    button.addEventListener("click", () => showEntry(entry, false));
+    button.type = "button"; button.className = "secondary"; button.textContent = name;
+    button.addEventListener("click", () => searchPotion(name, false, "memory-message"));
     li.append(button); $("memory-list").append(li);
   });
   showView("memory-view"); $("memory-title").focus();
 });
 document.querySelectorAll(".back-button").forEach(button => button.addEventListener("click", () => {
+  cancelSearch();
   $("name-input").value = "";
   $("search-message").textContent = "";
   showView("search-view"); $("search-title").focus();
 }));
 // 管理者向け。開発者ツールのConsoleで resetEncyclopediaHistory() を実行。
 window.resetEncyclopediaHistory = function () {
-  historyIds = [];
+  cancelSearch();
+  historyNames = [];
   $("name-input").value = "";
   $("search-message").textContent = "";
   try { localStorage.removeItem(STORAGE_KEY); } catch { storageWarning(); }
