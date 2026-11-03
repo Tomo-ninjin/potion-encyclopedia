@@ -14,6 +14,28 @@ function normalizeSearchName(name) {
   return name.trim().normalize("NFC").replace(/[\u3041-\u3096\u309D\u309E]/g,
     character => String.fromCharCode(character.charCodeAt(0) + 0x60));
 }
+// 「色」欄の表記と対応する色。必要に応じて表記を追加できます。
+const POTION_COLORS = {
+  "赤": "#b94e47", "青": "#507fb0", "緑": "#5b9261", "黄": "#d1b143",
+  "紫": "#9670ad", "桃": "#cf8caa", "ピンク": "#cf8caa",
+  "橙": "#ce8c48", "オレンジ": "#ce8c48", "水": "#78b8ce",
+  "茶": "#927252", "褐": "#927252", "琥珀": "#c19440",
+  "白": "#ffffff", "黒": "#595451", "灰": "#96938b",
+  "金": "#c1a34e", "銀": "#a5a9ad", "無": "#faf6ed", "透明": "#faf6ed",
+  "red": "#b94e47", "blue": "#507fb0", "green": "#5b9261", "yellow": "#d1b143",
+  "purple": "#9670ad", "pink": "#cf8caa", "orange": "#ce8c48",
+  "white": "#ffffff", "black": "#595451", "gray": "#96938b", "grey": "#96938b"
+};
+function memoryButtonTint(color) {
+  const label = color.trim().toLowerCase().replace(/^(淡い|薄い|濃い|明るい|暗い|深い)/, "").replace(/色$/, "");
+  let hex = POTION_COLORS[label] || label;
+  if (/^#[0-9a-f]{3}$/i.test(hex)) hex = "#" + [...hex.slice(1)].map(c => c + c).join("");
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
+  // 羊皮紙色へ14%だけ混ぜ、濃い文字との読みやすさを維持します。
+  const paper = [250, 246, 237];
+  const rgb = paper.map((base, i) => Math.round(base * 0.86 + parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) * 0.14));
+  return "rgb(" + rgb.join(", ") + ")";
+}
 function isPotion(entry) {
   return entry && ["id", "name", "image", "color", "material1", "material2", "effect", "uses"].every(key => typeof entry[key] === "string");
 }
@@ -128,6 +150,9 @@ $("remember-button").addEventListener("click", () => {
     const li = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button"; button.className = "secondary"; button.textContent = name;
+    const entry = potionCache.get(name);
+    const tint = entry ? memoryButtonTint(entry.color) : null;
+    if (tint) button.style.setProperty("--potion-tint", tint);
     button.addEventListener("click", () => searchPotion(name, false, "memory-message"));
     li.append(button); $("memory-list").append(li);
   });
