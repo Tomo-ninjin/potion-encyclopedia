@@ -9,6 +9,11 @@ const STORAGE_KEY = "potion-encyclopedia.api-history.v1";
 // Workerのデータを修正し、保存済み情報も更新させたい場合は v1 を v2 などに変更。
 const CACHE_KEY = "potion-encyclopedia.discovered.v1";
 const potionCache = new Map();
+// 検索用だけを正規化。正式名称や保存する表示名は変更しません。
+function normalizeSearchName(name) {
+  return name.trim().normalize("NFC").replace(/[\u3041-\u3096\u309D\u309E]/g,
+    character => String.fromCharCode(character.charCodeAt(0) + 0x60));
+}
 function isPotion(entry) {
   return entry && ["id", "name", "image", "color", "material1", "material2", "effect", "uses"].every(key => typeof entry[key] === "string");
 }
@@ -30,12 +35,14 @@ try {
 } catch { storageWarning(); }
 
 async function searchPotion(name, record, messageId) {
+  const searchName = normalizeSearchName(name);
   activeController?.abort();
   const version = ++requestVersion;
   activeController = null;
   $(messageId).textContent = "";
-  if (potionCache.has(name)) {
-    showEntry(potionCache.get(name), record);
+  const cached = [...potionCache.values()].find(entry => normalizeSearchName(entry.name) === searchName);
+  if (cached) {
+    showEntry(cached, record);
     return;
   }
   const controller = new AbortController();
@@ -45,7 +52,7 @@ async function searchPotion(name, record, messageId) {
   try {
     const response = await fetch(API_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }), signal: controller.signal,
+      body: JSON.stringify({ name: searchName }), signal: controller.signal,
       credentials: "omit", cache: "no-store"
     });
     if (!response.ok) throw new Error("API error");
@@ -56,7 +63,7 @@ async function searchPotion(name, record, messageId) {
       return;
     }
     const entry = data.potion;
-    if (!isPotion(entry) || entry.name !== name) throw new Error("Invalid response");
+    if (!isPotion(entry) || normalizeSearchName(entry.name) !== searchName) throw new Error("Invalid response");
     $(messageId).textContent = "";
     showEntry(entry, record);
     potionCache.set(entry.name, entry);
