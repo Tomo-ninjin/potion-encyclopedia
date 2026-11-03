@@ -26,8 +26,16 @@ const POTION_COLORS = {
   "purple": "#9670ad", "pink": "#cf8caa", "orange": "#ce8c48",
   "white": "#ffffff", "black": "#595451", "gray": "#96938b", "grey": "#96938b"
 };
+function normalizeColorLabel(color) {
+  return color.trim().toLowerCase().replace(/^(淡い|薄い|濃い|明るい|暗い|深い)/, "").replace(/色$/, "");
+}
+function memoryColorOrder(name) {
+  const color = normalizeColorLabel(potionCache.get(name)?.color || "");
+  const rank = { "赤": 0, "red": 0, "青": 1, "blue": 1, "緑": 2, "green": 2, "黄": 3, "yellow": 3 };
+  return Object.hasOwn(rank, color) ? rank[color] : 4;
+}
 function memoryButtonTint(color) {
-  const label = color.trim().toLowerCase().replace(/^(淡い|薄い|濃い|明るい|暗い|深い)/, "").replace(/色$/, "");
+  const label = normalizeColorLabel(color);
   let hex = POTION_COLORS[label] || label;
   if (/^#[0-9a-f]{3}$/i.test(hex)) hex = "#" + [...hex.slice(1)].map(c => c + c).join("");
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
@@ -143,7 +151,8 @@ $("search-form").addEventListener("submit", event => {
 });
 $("remember-button").addEventListener("click", () => {
   cancelSearch();
-  const entries = historyNames;
+  // 保存した検索順は変えず、表示だけを赤→青→緑→黄に並べます。
+  const entries = [...historyNames].sort((a, b) => memoryColorOrder(a) - memoryColorOrder(b));
   $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "を思い出した。" : "思い出せるものはまだ何もないようだ。";
   $("memory-list").replaceChildren();
   entries.forEach(name => {
