@@ -14,3 +14,6 @@
 #memory-list button{background:var(--potion-tint,transparent);border-color:#a58d70;color:var(--ink)}
 .back-button{background:#e6d8bf;border-color:#b29a77;color:var(--ink)}
 
+
+/* Workerの説明文に含めた改行を、そのまま表示する */
+#detail-view dd{white-space:pre-wrap}
