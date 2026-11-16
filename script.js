@@ -153,7 +153,7 @@ $("remember-button").addEventListener("click", () => {
   cancelSearch();
   // 保存した検索順は変えず、表示だけを赤→青→緑→黄に並べます。
   const entries = [...historyNames].sort((a, b) => memoryColorOrder(a) - memoryColorOrder(b));
-  $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "を思い出した。" : "思い出せるものはまだ何もないようだ。";
+  $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "について思い出した。" : "思い出せるものはまだ何もないようだ。";
   $("memory-list").replaceChildren();
   entries.forEach(name => {
     const li = document.createElement("li");
