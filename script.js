@@ -16,7 +16,7 @@ function normalizeSearchName(name) {
 }
 // 「色」欄の表記と対応する色。必要に応じて表記を追加できます。
 const POTION_COLORS = {
-  "赤": "#b94e47", "青": "#507fb0", "緑": "#5b9261", "黄": "#d1b143",
+  "赤": "#b94e47", "青": "#507fb0", "緑": "#5b9261", "黄": "#d1b143", "黄緑": "#9bb84f",
   "紫": "#9670ad", "桃": "#cf8caa", "ピンク": "#cf8caa",
   "橙": "#ce8c48", "オレンジ": "#ce8c48", "水": "#78b8ce",
   "茶": "#927252", "褐": "#927252", "琥珀": "#c19440",
@@ -31,7 +31,7 @@ function normalizeColorLabel(color) {
 }
 function memoryColorOrder(name) {
   const color = normalizeColorLabel(potionCache.get(name)?.color || "");
-  const rank = { "赤": 0, "red": 0, "青": 1, "blue": 1, "緑": 2, "green": 2, "黄": 3, "yellow": 3 };
+  const rank = { "赤": 0, "red": 0, "青": 1, "blue": 1, "緑": 2, "green": 2, "黄緑": 3 };
   return Object.hasOwn(rank, color) ? rank[color] : 4;
 }
 function memoryButtonTint(color) {
@@ -151,9 +151,9 @@ $("search-form").addEventListener("submit", event => {
 });
 $("remember-button").addEventListener("click", () => {
   cancelSearch();
-  // 保存した検索順は変えず、表示だけを赤→青→緑→黄に並べます。
+  // 保存した検索順は変えず、表示だけを赤→青→緑→黄緑に並べます。
   const entries = [...historyNames].sort((a, b) => memoryColorOrder(a) - memoryColorOrder(b));
-  $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "について思い出した。" : "思い出せるものはまだ何もないようだ。";
+  $("memory-text").textContent = entries.length ? entries.map(name => "『" + name + "』").join("") + "を思い出した。" : "思い出せるものはまだ何もないようだ。";
   $("memory-list").replaceChildren();
   entries.forEach(name => {
     const li = document.createElement("li");
